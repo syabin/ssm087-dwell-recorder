@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "SSM087 流程停留时长记录器",
+  "version": "1.0.0",
+  "description": "在网址包含 SSM087 的流程详情页面记录停留时长，并按流程编号与日期汇总显示（单位：秒）。",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SSM087 停留时长记录"
+  }
+}

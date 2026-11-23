@@ -1,0 +1,145 @@
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  overflow: hidden;  /* 整个弹窗不再出现滚动条 */
+}
+body {
+  font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  color: #1f2937;
+  background: #f8fafc;
+}
+.wrap { width: 496px; padding: 14px; } /* 620 × 0.8，表格总宽随之减 20% */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+header h1 { margin: 0; font-size: 15px; }
+header .sub { margin: 0 0 10px; font-size: 11px; color: #64748b; }
+.continuous-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #475569;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.continuous-toggle input { margin: 0; cursor: pointer; }
+
+.filterbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.filterbar input[type="date"] {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 5px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  color: #334155;
+  background: #fff;
+}
+button.nav {
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px 9px;
+}
+button.nav.today { font-size: 11px; padding: 5px 9px; }
+
+/* 表格区域唯一滚动容器：固定高度 = 表头 30px + 8 行 × 30px = 270px */
+.table-scroll {
+  max-height: 270px;
+  overflow-y: auto;
+  overflow-x: auto;  /* 内容过宽时可横向滚动兜底 */
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+}
+.table-scroll::-webkit-scrollbar { width: 6px; }
+.table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 12px;
+  table-layout: auto;  /* 列宽按各列实际内容自动分配，内容变化自动跟随 */
+}
+th, td {
+  padding: 0 8px;
+  height: 30px;
+  line-height: 30px;
+  text-align: left;
+  border-bottom: 1px solid #eef2f7;
+  white-space: nowrap;  /* 单行显示，让内容把列撑到合适宽度 */
+}
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+}
+tr:last-child td { border-bottom: 0; }
+/* 列宽不再写死，由 table-layout:auto 按内容自动分配 */
+.col-sec  { text-align: right; }
+.col-op   { text-align: center; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.project { color: #0f766e; }
+td.flow.link { color: #1d4ed8; cursor: pointer; }
+td.flow.link:hover { text-decoration: underline; }
+td.num.editable { cursor: pointer; }
+td.num.editable:hover { background: #fff7ed; }
+td.op { text-align: center; }
+.cell-input {
+  width: 58px;
+  font-size: 12px;
+  padding: 2px 4px;
+  border: 1px solid #2563eb;
+  border-radius: 3px;
+  text-align: right;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+td.op { white-space: nowrap; }
+button.row-del {
+  font-size: 11px;
+  padding: 2px 6px;
+  margin: 0 1px;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+button.row-del:hover { background: #fef2f2; }
+
+.tip { margin: 8px 0 0; font-size: 10px; line-height: 1.5; color: #94a3b8; }
+.tip.unlocked { color: #b45309; font-weight: 600; }
+#titleHead { cursor: default; user-select: none; }
+.empty { padding: 24px 10px; text-align: center; color: #94a3b8; font-size: 12px; }
+
+footer {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #64748b;
+}
+.actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+button {
+  font-size: 11px;
+  padding: 5px 9px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #334155;
+}
+button:hover { background: #f1f5f9; }
+button.danger { border-color: #fecaca; color: #b91c1c; }
+button.danger:hover { background: #fef2f2; }
