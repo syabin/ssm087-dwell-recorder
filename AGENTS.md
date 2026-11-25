@@ -34,6 +34,7 @@
 13. **让位后必须能抢占**：`syncActiveOwner()` 不能因 `yielded` 提前 return。已让位页面在「用户切回本页（`isActive()`）+ 本页可计时」时必须 `claimActive()`，否则新流程永远接不了管、旧后台流程一直计时。抢占通过 `activeTiming` 变更事件让旧页立即停下并结算。
 14. **流程编号识别失败要重试**：`ensureProcessNo()` 读不到编号时**不要立刻写死「未识别流程」**（加载慢时 `#control1` 还没渲染，刷新一下就能读到）。按 `PROCESS_NO_MAX_ATTEMPTS=5` 次、`PROCESS_NO_RETRY_MS=4000` 间隔重试；重试期间 `processNo` 保持空，`flush()` 会跳过写盘、时间留在 `buckets`。5 次用尽才置 `UNRECOGNIZED`（全角）并写 `unrecognizedAt`。落入未识别后仍低频重试，一旦读到真编号用 `mergeUnrecognized()` 把未识别记录按天并入真编号并删除旧条目（仅 10 分钟窗口内），避免刷新后出现两条。`popup.js` 判断未识别必须**同时兼容全角与半角**写法。
 15. **加载阶段不得消耗识别重试**：页面停在「正在努力加载…」（表单未渲染）时控件还不存在，`ensureProcessNo()` 会在首次提取即失败并累计次数。`ensureProcessNo()` 有三个调用点（初始化回调 / `tick()` / `flush()`），**加载守卫必须下沉到函数内部**（`!sheetReady() && 距 loadingSince < LOAD_TIMEOUT_MS` 时直接 return），不能只写在 `tick()` 里——否则初始化 + 每 5 秒的 `flush()` 会在加载期把 5 次机会耗光（曾出现「还没加载完就显示 识别流程编号中 2/5」）。保留超时兜底。同时 `updateFloat()` 在表单未渲染时状态显示「页面加载中」（不能依赖 `continuousMode`，否则会误显示绿色「计时中」）、编号行显示「（页面加载中…）」而非重试进度。
+16. **前台主流程永不让位**：`activeTiming` 选主只允许后台页面让位，前台页面（`isActive()`）在任何路径下都不得被设为 `yielded` 或显示「⏸已停止（另一流程计时中）」。三个易漏点必须都带前台守卫：① 初始化回调读到别人的 `activeTiming` 时，仅 `!isActive()` 才 `yielded=true`；② `onChanged` 收到别人的 `activeTiming` 变更时，前台要 `claimActive()` 抢回、只有后台才 yield（曾因这里无条件 yield，后台流程心跳把前台主流程打断、丢时间）；③ `updateFloat()` 的「已停止」提示和 `tick()` 的 `canCount` 都要让前台豁免（`isActive() || !yielded`）。`syncActiveOwner()` 在 owner 心跳超时需重选时，已让位的后台页面不得抢占（`!isActive() && yielded` 直接 return），避免反过来打断前台。
 
 ## 数据存储
 

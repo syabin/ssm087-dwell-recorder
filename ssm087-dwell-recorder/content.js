@@ -237,6 +237,10 @@
       return;
     }
 
+    // 无主或原主心跳超时。已明确让位的后台页面不再抢，避免反过来打断
+    // 正在前台计时的主流程（曾因此让前台主流程被误停、丢时间）。
+    // 前台页面或从未让位的后台页面可以接管。
+    if (!isActive() && yielded) return;
     claimActive();
   }
 
@@ -570,7 +574,8 @@
       if (!sheetReady()) {
         stateEl.textContent = continuousMode ? '⏳加载中（时间暂存）' : '⏳页面加载中';
         stateEl.style.color = '#fbbf24';
-      } else if (continuousMode && yielded) {
+      } else if (continuousMode && yielded && !isActive()) {
+        // 已停止只对后台让位页面有意义；前台页面永不负这条提示
         stateEl.textContent = '⏸已停止（另一流程计时中）';
         stateEl.style.color = '#fca5a5';
       } else if (gs.ok) {
@@ -662,7 +667,9 @@
     } else {
       // 决定本页是否仍在计时（让位给别的流程后立即停）
       if (continuousMode) syncActiveOwner(eligible);
-      var canCount = eligible && (continuousMode ? !yielded : isActive());
+      // 前台页面即使残留 yielded 也不停计：主流程一旦可见就必须连续计时，
+      // 让位只应作用于后台页面。后台流程的抢占交给 syncActiveOwner 处理。
+      var canCount = eligible && (continuousMode ? (isActive() || !yielded) : isActive());
       if (canCount) addMsToBucket(validMs, now);
     }
 
@@ -708,7 +715,8 @@
     continuousMode = !!res.keepTimingWhenHidden;
     activeTiming = res.activeTiming || null;
     if (continuousMode && activeTiming && activeTiming.runId !== RUN_ID && !activeTimingStale()) {
-      yielded = true; // 已有别的流程在计时，本页不抢
+      // 前台页面不让位：由 syncActiveOwner 在 tick 里抢占回来
+      if (!isActive()) yielded = true;
       prevOwnerFlow = activeTiming.processNo || null; // 加载时间可能要还给它
     }
     ensureProcessNo();
@@ -745,10 +753,16 @@
     if (changes.activeTiming) {
       activeTiming = changes.activeTiming.newValue || null;
       if (continuousMode && activeTiming && activeTiming.runId !== RUN_ID &&
-          !activeTimingStale() && !yielded) {
-        yielded = true;
-        owningActive = false;
-        flush();
+          !activeTimingStale()) {
+        if (isActive()) {
+          // 本页在前台：绝不让位给后台流程，反而抢占回来。
+          // 曾因这里无条件 yielded=true 导致前台主流程被后台心跳打断、时间丢失。
+          if (processNo && isEligible()) claimActive();
+        } else if (!yielded) {
+          yielded = true;
+          owningActive = false;
+          flush();
+        }
       }
       updateFloat();
     }
