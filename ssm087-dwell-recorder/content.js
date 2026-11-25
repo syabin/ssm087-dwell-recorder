@@ -136,12 +136,35 @@
     } catch (e) { return true; }
   }
 
+  // MvcSheet 整页加载遮罩（"正在努力加载…"）是否还可见。
+  // innerText 只返回可见文本，隐藏的提示不会被读到，可放心用。
+  function isLoadingMaskVisible() {
+    try {
+      var text = document.body ? (document.body.innerText || '') : '';
+      return /正在努力加载/.test(text);
+    } catch (e) { return false; }
+  }
+
   function sheetReady() {
     var sheet = document.getElementById('sheetContent');
     // 表单节点还没出现（页面停在「正在努力加载…」）=> 仍在加载中，
     // 时间必须继续暂存，绝不能判定为「已加载完」而提前结算。
-    if (!sheet) return false;
-    return isRendered(sheet);
+    if (!sheet || !isRendered(sheet)) return false;
+    // 关键：容器可见 ≠ 内容加载完。MvcSheet 流程是
+    //   #sheetContent 从 display:none → .show() → $.MvcSheet.Init() 异步填充控件。
+    // .show() 到控件渲染出来之间，容器已可见但表单内容还是空的；
+    // 若此时判定为就绪，会提前 resolveLoading()、把这段加载时间结算掉而丢失，
+    // 并误显示「识别流程编号中 n/5」和「已停止」。
+    // 因此必须同时满足：加载遮罩消失 + 表单字段控件真正出现。
+    if (isLoadingMaskVisible()) return false;
+    var FIELD_SEL = '[data-datafield], span.toolText, [data-title], .panel-title';
+    try {
+      if (sheet.querySelector && sheet.querySelector(FIELD_SEL)) return true;
+    } catch (e) {}
+    // 兜底：少数 DOM 结构下字段不在 sheet 内，用文档级查询
+    try {
+      return !!(document.querySelector && document.querySelector(FIELD_SEL));
+    } catch (e) { return false; }
   }
 
   function activeTimingStale() {
